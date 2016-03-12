@@ -4,6 +4,6 @@ LANG=CPP
 all : main
 
 clean : 
-  rm main
+	rm main
 main : 
 	g++ -o main main.cpp -lwiringPi -Wall
