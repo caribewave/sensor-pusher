@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
    if (argc == 2) {
       printf("Sampling rate is %s\n", argv[1]);
-      sampling_rate_in_ms = min(0, max(1000, atoi(argv[1])));
+      sampling_rate_in_ms = max(0, min(1000, atoi(argv[1])));
    } else if (argc != 1 && argc > 2) {
       printf("Too many arguments supplied. Default sampling rate used.\n");
    }
