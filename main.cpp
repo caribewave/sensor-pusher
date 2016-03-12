@@ -58,10 +58,10 @@ int main(int argc, char *argv[])
    int fd, fd2;
    int x,y,z;
 
-   if (argc == 1) {
+   if (argc == 2) {
       printf("Sampling rate is %s\n", argv[1]);
       sampling_rate_in_ms = min(0, max(1000, atoi(argv[1])));
-   } else if (argc > 1) {
+   } else if (argc != 1 && argc > 2) {
       printf("Too many arguments supplied. Default sampling rate used.\n");
    }
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 
       // Offset for X/Y (due to MMA7260Q)
       x = x + 9;
-      y = y + 467; // 150mV
+      y = y + 47; // 150mV
 
       // Offset Z for gravity (1G = 800mV at 1.5 precision)
       x = x - 512;
