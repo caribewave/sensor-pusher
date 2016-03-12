@@ -13,6 +13,8 @@ using namespace std;
 #define SPI_SPEED 1200000
 #define MIN_TRIGGER 10*10
 
+unsigned int sampling_rate_in_ms = 1000;
+
 // channel = 0, 1, 2
 unsigned int readADC(int channel) {
 
@@ -49,11 +51,17 @@ unsigned int readADC(int channel) {
    return msb;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
    int fd, fd2;
-
    int x,y,z;
+
+   if (argc == 1) {
+      printf("Sampling rate is %s\n", argv[1]);
+      sampling_rate_in_ms = min(0, max(1000, atoi(argv[1])));
+   } else if (argc > 1) {
+      printf("Too many arguments supplied. Default sampling rate used.\n");
+   }
 
    cout << "Initializing" << endl;
 
@@ -61,16 +69,17 @@ int main()
    fd = wiringPiSPISetup(0, SPI_SPEED);
    fd2 = wiringPiSPISetup(1, SPI_SPEED);
 
-   cout << "Init fd result: " << fd << endl;
-   cout << "Init fd2 result: " << fd2 << endl;
+   cout << "Init first MPC3002 : " << fd << endl;
+   cout << "Init second MPC3002 : " << fd2 << endl;
 
-   do
-   {
+   do {
       x = readADC(0);
       y = readADC(1);
       z = readADC(2);
 
-      // Offset for 
+      // Offset for X/Y (due to MMA7260Q)
+      x = x + 9;
+      y = y + 467; // 150mV
 
       // Offset Z for gravity (1G = 800mV at 1.5 precision)
       x = x - 512;
@@ -81,7 +90,7 @@ int main()
          printf("%d %d %d\n", x, y, z);
       }
 
-      sleep(1);
+      usleep(sampling_rate_in_ms * 1000);
 
    } while(true);
 
