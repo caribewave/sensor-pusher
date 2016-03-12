@@ -11,7 +11,7 @@
 using namespace std;
 
 #define SPI_SPEED 1200000
-#define MIN_TRIGGER 10
+#define MIN_TRIGGER 10*10
 
 // channel = 0, 1, 2
 unsigned int readADC(int channel) {
@@ -43,8 +43,8 @@ unsigned int readADC(int channel) {
    */
    wiringPiSPIDataRW(cs, buffer, 2);
 
-   int msb = buffer[1] + ((buffer[0] & 0x03) << 8);
-   int lsb = buffer[0] + ((buffer[1] & 0x03) << 8);
+   unsigned int msb = buffer[1] + ((buffer[0] & 0x03) << 8);
+   //unsigned int lsb = buffer[0] + ((buffer[1] & 0x03) << 8);
 
    return msb;
 }
@@ -70,9 +70,18 @@ int main()
       y = readADC(1);
       z = readADC(2);
 
+      // Offset for 
+
+      // Offset Z for gravity (1G = 800mV at 1.5 precision)
+      x = x - 512;
+      y = y - 512;
+      z = z - 248; // 800mV/(3,3V/1023)
+
       if (x*x + y*y + z*z > MIN_TRIGGER) {
-         printf("%04x %04x %04x\n", x, y, z);
+         printf("%d %d %d\n", x, y, z);
       }
+
+      sleep(1);
 
    } while(true);
 
