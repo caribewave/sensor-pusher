@@ -3,11 +3,11 @@
 ******************************************************************************/
 
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
 #include <errno.h>
 #include <wiringPiSPI.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 using namespace std;
