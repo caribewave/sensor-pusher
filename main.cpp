@@ -19,16 +19,16 @@ bool debug_flag = false;
 #define SPI_SPEED 1200000
 
 // Minimum square value for triggering an output
-#define MIN_TRIGGER 1 // in G
+#define MIN_TRIGGER 0.4 // in G
 
 // Coefficient for 10bit ADC --> G
 #define G_COEF (3300/1024)/800
 #define G_COEF_2 G_COEF*G_COEF
 
 // Offsets are calculated here for faaaaastness (heuristics)
-#define X_OFFSET -512 -1
+#define X_OFFSET -512 - 2
 #define Y_OFFSET -512 + 67
-#define Z_OFFSET -512 - 248 + 39 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
+#define Z_OFFSET -512 - 248 + 41 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
 
 // Time
 #define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
