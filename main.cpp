@@ -36,24 +36,25 @@ bool debug_flag = false;
 // Sampling rate for the ADC
 unsigned int sampling_rate_in_us = 1000000; // 1 second
 
+// We declare globals for faster reads
+unsigned int channel_select;
+unsigned char buffer[2];
+
 // channel = 0, 1, 2
 unsigned int readADC(int channel) {
-
-   int cs = 0;
-   unsigned char buffer[2];
 
    if (channel == 0) {
       buffer[0] = 0x60;
       buffer[1] = 0x00;
-      cs = 0;
+      channel_select = 0;
    } else if (channel == 1) {
       buffer[0] = 0x70;
       buffer[1] = 0x00;
-      cs = 0;
+      channel_select = 0;
    } else {
       buffer[0] = 0x60;
       buffer[1] = 0x00;
-      cs = 1;
+      channel_select = 1;
    }
 
    // We write two bits
@@ -64,7 +65,7 @@ unsigned int readADC(int channel) {
       retrieve the data in MSB-first order, so the result is the sum of
       (the bottom two bits of the first byte shifted up by eight bits) + the second byte.
    */
-   wiringPiSPIDataRW(cs, buffer, 2);
+   wiringPiSPIDataRW(channel_select, buffer, 2);
 
    // Used just for testing :
    // unsigned int msb = buffer[1] + ((buffer[0] & 0x03) << 8);
@@ -135,6 +136,7 @@ int main(int argc, char *argv[])
          x += readADC(0);
          y += readADC(1);
          z += readADC(2);
+         usleep(10);
       }
 
       // Average on 1ms approx.
