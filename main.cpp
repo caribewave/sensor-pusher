@@ -23,7 +23,6 @@ bool debug_flag = false;
 
 // Coefficient for 10bit ADC --> G
 #define G_COEF (3300/1024)/800
-#define G_COEF_2 G_COEF*G_COEF
 
 // Offsets are calculated here for faaaaastness (heuristics)
 #define X_OFFSET -512 - 2
@@ -156,7 +155,7 @@ int main(int argc, char *argv[])
       zg = (double) z*G_COEF;
 
       // 1G on at least one axis triggers the output
-      if (G_COEF_2*(x*x + y*y + z*z) > MIN_TRIGGER || debug_flag) {
+      if ( xg*xg + yg*yg + zg*zg > MIN_TRIGGER || debug_flag) {
          // Format : X_10bit X_G Y_10bit Y_G Z_1Obit Z_G
          printf("%d %f %d %f %d %f\n", x, xg, y, yg, z, zg);
 
