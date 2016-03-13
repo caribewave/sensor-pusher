@@ -26,9 +26,9 @@ bool debug_flag = false;
 #define G_COEF_2 G_COEF*G_COEF
 
 // Offsets are calculated here for faaaaastness (heuristics)
-#define X_OFFSET -512 + 11
-#define Y_OFFSET -512 + 57
-#define Z_OFFSET -512 - 248 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
+#define X_OFFSET -512 + 25
+#define Y_OFFSET -512 + 64
+#define Z_OFFSET -512 - 248 + 3 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
 
 // Time
 #define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
@@ -81,6 +81,10 @@ int main(int argc, char *argv[])
    // Data values
    int x, y, z;
    double xg, yg, zg;
+
+   // Running an average on the whole sim
+   long x_avg, y_avg, z_avg, count_avg;
+   x_avg = 0; y_avg = 0; z_avg = 0; count_avg = 0;
 
    // For clocking and precision
    clock_t tic, toc;
@@ -151,11 +155,17 @@ int main(int argc, char *argv[])
       if (G_COEF_2*(x*x + y*y + z*z) > MIN_TRIGGER || debug_flag) {
          // Format : X_10bit X_G Y_10bit Y_G Z_1Obit Z_G
          printf("%d %f %d %f %d %f\n", x, xg, y, yg, z, zg);
+
+         if (debug_flag) {
+            x_avg += x; y_avg += y; z_avg += z; 
+            count_avg++;
+            printf(" [Average since launch %d %d %d]\n", x_avg/count_avg, y_avg/count_avg, z_avg/count_avg);
+         }
       }
 
       toc = clock();
       elapsed_time_in_us = (toc - tic) * ONE_OVER_CPS; // in microsecs
-      if (debug_flag) printf("Sampling took %d us.\n", elapsed_time_in_us);
+      if (debug_flag) printf(" [Sampling took %d us]\n", elapsed_time_in_us);
 
       usleep(sampling_rate_in_us - max(0, static_cast<int>(min(elapsed_time_in_us, sampling_rate_in_us))));
 
