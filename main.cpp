@@ -35,6 +35,8 @@ bool debug_flag = false;
 
 // Sampling rate for the ADC
 unsigned int sampling_rate_in_us = 1000000; // 1 second
+// Type of accelerometer
+unsigned char type[10];
 
 // We declare globals for faster reads
 unsigned int channel_select;
@@ -97,15 +99,20 @@ int main(int argc, char *argv[])
       printf("  ./main [sampling rate] [debug]\n");
       printf("\n");
       printf("Arguments :\n");
-      printf("  - debug: 1 or 0.\n");
+      printf("  - type: type of accelerometer : ADXL, LIS or MMA (string).\n");
       printf("  - sampling rate: in milliseconds, between 0 and 1000.\n");
+      printf("  - debug: 1 or 0.\n");
       printf("\n");
       exit(0);
    } else if (argc == 2) {
-      sampling_rate_in_us = max(0, min(1000, atoi(argv[1]))) * 1000;
+      type = argv[1];
    } else if (argc == 3) {
-      sampling_rate_in_us = max(0, min(1000, atoi(argv[1]))) * 1000;
-      debug_flag = argv[2][0] == '1' ? true : false;
+      type = argv[1];
+      sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
+   } else if (argc == 4) {
+      type = argv[1];
+      sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
+      debug_flag = argv[3][0] == '1' ? true : false;
       if (debug_flag) printf("Debug flag is TRUE.\n");
    } else {
       if (debug_flag) printf("Too many arguments supplied. Default sampling rate used.\n");
@@ -113,6 +120,7 @@ int main(int argc, char *argv[])
 
    if (debug_flag) printf("Starting up.\n");
    if (debug_flag) printf("Sampling rate will be %d µs.\n", sampling_rate_in_us);
+   if (debug_flag) printf("Accel. type is : %s.\n", type);
    if (debug_flag) printf("Initializing sensor pusher ...\n");
 
    // Configure the interface.
@@ -136,7 +144,6 @@ int main(int argc, char *argv[])
          x += readADC(0);
          y += readADC(1);
          z += readADC(2);
-         usleep(10);
       }
 
       // Average on 1ms approx.
@@ -161,7 +168,7 @@ int main(int argc, char *argv[])
          if (debug_flag) {
             x_avg += x; y_avg += y; z_avg += z; 
             count_avg++;
-            printf(" [Average since launch %d %d %d]\n", x_avg/count_avg, y_avg/count_avg, z_avg/count_avg);
+            printf(" [Average since launch %ld %ld %ld]\n", x_avg/count_avg, y_avg/count_avg, z_avg/count_avg);
          }
       }
 
