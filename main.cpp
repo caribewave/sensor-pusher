@@ -22,12 +22,17 @@ bool debug_flag = false;
 #define MIN_TRIGGER 0.4 // in G
 
 // Coefficient for 10bit ADC --> G
-#define G_COEF (3300/1024)/800
+#define G_COEF_ADXL (3300/1024)/330
+#define G_COEF_MMA (3300/1024)/800
 
 // Offsets are calculated here for faaaaastness (heuristics)
-#define X_OFFSET -512
-#define Y_OFFSET -512
-#define Z_OFFSET -512 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
+#define X_OFFSET_ADXL -512 + 5
+#define Y_OFFSET_ADXL -512 + 5
+#define Z_OFFSET_ADXL -512 - 102// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
+
+#define X_OFFSET_MMA -512
+#define Y_OFFSET_MMA -512
+#define Z_OFFSET_MMA -512 - 248// Account for gravity (ADXL 1G = 800mV/g)  // 800mV/(3,3V/1023)
 
 // Time
 #define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
@@ -140,9 +145,15 @@ int main(int argc, char *argv[])
       x = 0; y = 0; z = 0;
       for (int i = 0; i < 10; ++i)
       {
-         x += readADC(0) + X_OFFSET;
-         y += readADC(1) + Y_OFFSET;
-         z += readADC(2) + Z_OFFSET;
+         if (strcmp(type,"ADXL")) {
+            x += readADC(0) + X_OFFSET_ADXL;
+            y += readADC(1) + Y_OFFSET_ADXL;
+            z += readADC(2) + Z_OFFSET_ADXL;
+         } else if (strcmp(type,"MMA")) {
+            x += readADC(0) + X_OFFSET_MMA;
+            y += readADC(1) + Y_OFFSET_MMA;
+            z += readADC(2) + Z_OFFSET_MMA;
+         }
       }
 
       // Average on 1ms approx.
@@ -150,9 +161,15 @@ int main(int argc, char *argv[])
       y = y/10;
       z = z/10;
 
-      xg = (double) x*G_COEF;
-      yg = (double) y*G_COEF;
-      zg = (double) z*G_COEF;
+      if (strcmp(type,"ADXL")) {
+         xg = (double) x*G_COEF_ADXL;
+         yg = (double) y*G_COEF_ADXL;
+         zg = (double) z*G_COEF_ADXL;
+      } else if (strcmp(type,"MMA")) {
+         xg = (double) x*G_COEF_MMA;
+         yg = (double) y*G_COEF_MMA;
+         zg = (double) z*G_COEF_MMA;
+      }
 
       // 1G on at least one axis triggers the output
       if ( xg*xg + yg*yg + zg*zg > MIN_TRIGGER || debug_flag) {
