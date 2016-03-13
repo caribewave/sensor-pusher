@@ -36,7 +36,7 @@ bool debug_flag = false;
 // Sampling rate for the ADC
 unsigned int sampling_rate_in_us = 1000000; // 1 second
 // Type of accelerometer
-unsigned char type[10];
+char * type;
 
 // We declare globals for faster reads
 unsigned int channel_select;
@@ -141,20 +141,15 @@ int main(int argc, char *argv[])
       x = 0; y = 0; z = 0;
       for (int i = 0; i < 10; ++i)
       {
-         x += readADC(0);
-         y += readADC(1);
-         z += readADC(2);
+         x += readADC(0) + X_OFFSET;
+         y += readADC(1) + Y_OFFSET;
+         z += readADC(2) + Z_OFFSET;
       }
 
       // Average on 1ms approx.
       x = x/10;
       y = y/10;
       z = z/10;
-
-      // Offset for X/Y (due to MMA7260Q analogic)
-      x += X_OFFSET;
-      y += Y_OFFSET;
-      z += Z_OFFSET;
 
       xg = (double) x*G_COEF;
       yg = (double) y*G_COEF;
