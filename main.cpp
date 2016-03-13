@@ -27,7 +27,7 @@ bool debug_flag = false;
 
 // Offsets are calculated here for faaaaastness (heuristics)
 #define X_OFFSET_ADXL -512 + 4
-#define Y_OFFSET_ADXL -512 + 2
+#define Y_OFFSET_ADXL -512 + 1
 #define Z_OFFSET_ADXL -512 - 102 + 55 // Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
 
 #define X_OFFSET_MMA -512
@@ -65,18 +65,7 @@ unsigned int readADC(int channel) {
    }
 
    // We write two bits
-   /*
-      Note that the SPI protocol "returns" the same number of bits as sent,
-      and in this case the 10-bit ADC data is encoded in the last two bits
-      of the first byte and the eight bits of the second byte. I chose to
-      retrieve the data in MSB-first order, so the result is the sum of
-      (the bottom two bits of the first byte shifted up by eight bits) + the second byte.
-   */
    wiringPiSPIDataRW(channel_select, buffer, 2);
-
-   // Used just for testing :
-   // unsigned int msb = buffer[1] + ((buffer[0] & 0x03) << 8);
-   // unsigned int lsb = buffer[0] + ((buffer[1] & 0x03) << 8);
 
    return ((buffer [0] << 7) | (buffer [1] >> 1)) & 0x3FF ;
 }
