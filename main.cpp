@@ -28,7 +28,7 @@ bool debug_flag = false;
 // Offsets are calculated here for faaaaastness (heuristics)
 #define X_OFFSET_ADXL -512 + 5
 #define Y_OFFSET_ADXL -512 + 5
-#define Z_OFFSET_ADXL -512 - 102// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
+#define Z_OFFSET_ADXL -512 - 102 - 16// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
 
 #define X_OFFSET_MMA -512
 #define Y_OFFSET_MMA -512
