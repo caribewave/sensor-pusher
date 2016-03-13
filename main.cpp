@@ -25,9 +25,9 @@ bool debug_flag = false;
 #define G_COEF (3300/1024)/800
 
 // Offsets are calculated here for faaaaastness (heuristics)
-#define X_OFFSET -512 - 2
-#define Y_OFFSET -512 + 67
-#define Z_OFFSET -512 - 248 + 41 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
+#define X_OFFSET -512
+#define Y_OFFSET -512
+#define Z_OFFSET -512 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
 
 // Time
 #define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
