@@ -125,9 +125,18 @@ int main(int argc, char *argv[])
 
       tic = clock();
 
-      x = readADC(0);
-      y = readADC(1);
-      z = readADC(2);
+      x = 0; y = 0; z = 0;
+      for (int i = 0; i < 10; ++i)
+      {
+         x += readADC(0);
+         y += readADC(1);
+         z += readADC(2);
+      }
+
+      // Average on 1ms approx.
+      x = x/10;
+      y = y/10;
+      z = z/10;
 
       // Offset for X/Y (due to MMA7260Q analogic)
       x += X_OFFSET;
