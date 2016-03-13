@@ -1,7 +1,12 @@
-Sensor pusher
-- - -
+Caribe Wave Sensor pusher
+---
  
-Retrieves data from different sensors, and output them to stdout for consumption for the next stage (pheromon, see [this repo](https://github.com/caribewave/pheromon)).
+Retrieves data from different sensors on a Raspberry Pi, and output them to stdout for consumption for the next stage (pheromon, see [this repo](https://github.com/caribewave/pheromon)).
+
+
+#### Requirements
+
+The (http://wiringpi.com/)[wiringPi] library must be installed before hand and the **spi_bcm2835** module must be enabled (and not blacklisted).
 
 #### Operation
 
