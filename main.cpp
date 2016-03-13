@@ -145,11 +145,11 @@ int main(int argc, char *argv[])
       x = 0; y = 0; z = 0;
       for (int i = 0; i < 10; ++i)
       {
-         if (strcmp(type,"ADXL")) {
+         if (strcmp(type,"ADXL")==0) {
             x += readADC(0) + X_OFFSET_ADXL;
             y += readADC(1) + Y_OFFSET_ADXL;
             z += readADC(2) + Z_OFFSET_ADXL;
-         } else if (strcmp(type,"MMA")) {
+         } else if (strcmp(type,"MMA")==0) {
             x += readADC(0) + X_OFFSET_MMA;
             y += readADC(1) + Y_OFFSET_MMA;
             z += readADC(2) + Z_OFFSET_MMA;
@@ -161,11 +161,11 @@ int main(int argc, char *argv[])
       y = y/10;
       z = z/10;
 
-      if (strcmp(type,"ADXL")) {
+      if (strcmp(type,"ADXL")==0) {
          xg = (double) x*G_COEF_ADXL;
          yg = (double) y*G_COEF_ADXL;
          zg = (double) z*G_COEF_ADXL;
-      } else if (strcmp(type,"MMA")) {
+      } else if (strcmp(type,"MMA")==0) {
          xg = (double) x*G_COEF_MMA;
          yg = (double) y*G_COEF_MMA;
          zg = (double) z*G_COEF_MMA;
