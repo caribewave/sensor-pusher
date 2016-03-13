@@ -28,7 +28,7 @@ bool debug_flag = false;
 // Offsets are calculated here for faaaaastness (heuristics)
 #define X_OFFSET -512 + 11
 #define Y_OFFSET -512 + 57
-#define Z_OFFSET -248 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
+#define Z_OFFSET -512 - 248 // Account for gravity (1G = 800mV at 1.5 precision)  // 800mV/(3,3V/1023)
 
 // Time
 #define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
