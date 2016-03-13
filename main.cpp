@@ -26,9 +26,9 @@ bool debug_flag = false;
 #define G_COEF_MMA (3300/1024)/800
 
 // Offsets are calculated here for faaaaastness (heuristics)
-#define X_OFFSET_ADXL -512 + 5
-#define Y_OFFSET_ADXL -512 + 6
-#define Z_OFFSET_ADXL -512 - 102 - 20// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
+#define X_OFFSET_ADXL -512 + 4
+#define Y_OFFSET_ADXL -512 + 2
+#define Z_OFFSET_ADXL -512 - 102 + 55 // Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
 
 #define X_OFFSET_MMA -512
 #define Y_OFFSET_MMA -512
