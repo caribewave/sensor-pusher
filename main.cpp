@@ -16,7 +16,7 @@ using namespace std;
 bool debug_flag = false;
 
 // SPI Speed as per the datasheet of the accelerometer : 1,2 MHz
-#define SPI_SPEED 1200000
+#define SPI_SPEED 1000000
 
 // Minimum square value for triggering an output
 #define MIN_TRIGGER 0.4 // in G
@@ -27,8 +27,8 @@ bool debug_flag = false;
 
 // Offsets are calculated here for faaaaastness (heuristics)
 #define X_OFFSET_ADXL -512 + 5
-#define Y_OFFSET_ADXL -512 + 5
-#define Z_OFFSET_ADXL -512 - 102 - 16// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
+#define Y_OFFSET_ADXL -512 + 6
+#define Z_OFFSET_ADXL -512 - 102 - 20// Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
 
 #define X_OFFSET_MMA -512
 #define Y_OFFSET_MMA -512
@@ -49,16 +49,17 @@ unsigned char buffer[2];
 // channel = 0, 1, 2
 unsigned int readADC(int channel) {
 
+   // From https://github.com/WiringPi/WiringPi/blob/master/wiringPi/mcp3002.c
    if (channel == 0) {
-      buffer[0] = 0x60;
+      buffer[0] = 0b11010000;
       buffer[1] = 0x00;
       channel_select = 0;
    } else if (channel == 1) {
-      buffer[0] = 0x70;
+      buffer[0] = 0b11110000;
       buffer[1] = 0x00;
       channel_select = 0;
    } else {
-      buffer[0] = 0x60;
+      buffer[0] = 0b11010000;
       buffer[1] = 0x00;
       channel_select = 1;
    }
@@ -77,7 +78,7 @@ unsigned int readADC(int channel) {
    // unsigned int msb = buffer[1] + ((buffer[0] & 0x03) << 8);
    // unsigned int lsb = buffer[0] + ((buffer[1] & 0x03) << 8);
 
-   return buffer[1] + ((buffer[0] & 0x03) << 8);
+   return ((buffer [0] << 7) | (buffer [1] >> 1)) & 0x3FF ;
 }
 
 int main(int argc, char *argv[])
