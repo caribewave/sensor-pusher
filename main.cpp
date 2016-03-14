@@ -14,54 +14,39 @@
 using namespace std;
 
 bool debug_flag = false;
+bool first_loop = true;
 
 // SPI Speed as per the datasheet of the accelerometer : 1,2 MHz
 #define SPI_SPEED 1200000
 
-// Minimum square value for triggering an output
-#define MIN_TRIGGER 0.8 // in G
+// Minimum g value for triggering an output
+double min_trigger_in_square_g = 0.64; // default : 800mg^2 = 0,64g
 
 // Coefficient for 10bit/16bit ADC --> G
-#define G_COEF_ADXL (3300.0/1024.0)/330.0
-#define G_COEF_MMA (3300.0/1024.0)/800.0
+#define G_COEF_ADXL (3300.0/1024.0)/330.0 // (VCC/10bit)/330mv_per_g
+#define G_COEF_MMA (3300.0/1024.0)/800.0 // (VCC/10bit)/800mv_per_g
 #define G_COEF_LIS (12.0/65535.0) //  (6g fullscale range)/(2^16bits) = SCALE
 
-// Offsets are calculated here for faaaaastness (heuristics)
+// Divide in advance for faster loops
+#define ONE_OVER_CPS (1000000.0/CLOCKS_PER_SEC)
 
-// These are value against 10bit
-#define X_OFFSET_ADXL -512 + 4
-#define Y_OFFSET_ADXL -512 + 1
-#define Z_OFFSET_ADXL -512 - 102 + 55 // Account for gravity (ADXL 1G = 330mV/g)  // 330mV/(3,3V/1023)
-
-// These are value against 10bit
-#define X_OFFSET_MMA -512
-#define Y_OFFSET_MMA -512
-#define Z_OFFSET_MMA -512 - 248// Account for gravity (ADXL 1G = 800mV/g)  // 800mV/(3,3V/1023)
-
-// These are value against 16bit
-#define X_OFFSET_LIS -678
-#define Y_OFFSET_LIS +17
-#define Z_OFFSET_LIS -5359
-
-// Time
-#define ONE_OVER_CPS (1000000/CLOCKS_PER_SEC)
-
-// Sampling rate for the ADC
+// Sampling rate for the ADC, in microsecs
 unsigned int sampling_rate_in_us = 1000000; // 1 second
 
 #define FINE_SAMPLING_COUNT 10
 
-// Type of accelerometer
+// Global type of accelerometer
 unsigned int type;
 
-// Types of accelerometer
+// Types of supported accelerometers
 #define TYPE_MMA 1
 #define TYPE_ADXL 2
 #define TYPE_LIS331 3
 
-// We declare globals for faster reads
+// We declare globals for faster reads in readADC
 unsigned int channel_select;
 unsigned char buffer[10];
+int spi_result;
 
 // channel = 0, 1, 2 <=> X, Y and Z
 unsigned int readADC(int channel)
@@ -104,15 +89,15 @@ unsigned int readADC(int channel)
 
       // We write three bits here — the sensor works a bit differently
       wiringPiSPIDataRW(channel_select, buffer, 3);
-      int result = buffer[1] | (buffer[2] << 8);
+      spi_result = buffer[1] | (buffer[2] << 8);
 
       // LS331 is in Two's complement for its 16bit
       // https://en.wikipedia.org/wiki/Two%27s_complement
-      if (result >= 32768) {
-         result -= 65535;
+      if (spi_result >= 32768) {
+         spi_result -= 65535;
       }
 
-      return result;
+      return spi_result;
 
    }
 
@@ -124,36 +109,24 @@ void parse_args(int argc, char *argv[])
 {
 
    // Check arguments
-   if (argc == 1) {
+   if (argc != 5) {
    
       printf("Caribe Wave Sensor Pusher — pushes sensor data to stdout for next stage.\n");
       printf("Usage :\n");
-      printf("  ./main [sampling rate] [debug]\n");
+      printf("  ./main [type] [sampling rate] [trigger] [debug]\n");
       printf("\n");
       printf("Arguments :\n");
       printf("  - type: type of accelerometer : ADXL, LIS or MMA (string).\n");
       printf("  - sampling rate: in milliseconds, between 0 and 1000.\n");
+      printf("  - trigger: trigger value in millig.\n");
       printf("  - debug: 1 or 0.\n");
       printf("\n");
       exit(0);
    
-   } else if (argc == 3) {
-   
-      sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
-   
-   } else if (argc == 4) {
-
-      sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
-      debug_flag = argv[3][0] == '1' ? true : false;
-
-      if (debug_flag) printf("Debug flag is TRUE.\n");
-   
-   } else if (argc > 4) {
-   
-      printf("Too many arguments supplied..\n");
-      exit(0);
-   
    }
+
+   debug_flag = argv[4][0] == '1' ? true : false;
+   if (debug_flag) printf("Debug flag is TRUE.\n");
 
    if (strcmp(argv[1],"LIS")==0) {
       type = TYPE_LIS331;
@@ -169,6 +142,13 @@ void parse_args(int argc, char *argv[])
       exit(0);
    }
 
+   sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
+   if (debug_flag) printf("Sampling rate will be %d µs (%d ms).\n", sampling_rate_in_us, sampling_rate_in_us / 1000);
+
+   int min_trigger_in_millig = max(0, min(6000, atoi(argv[3])));
+   min_trigger_in_square_g = (min_trigger_in_millig/1000.0)*(min_trigger_in_millig/1000.0);
+   if (debug_flag) printf("Minimum trigger is %d mg.\n", min_trigger_in_millig);
+
 }
 
 int main(int argc, char *argv[])
@@ -178,11 +158,12 @@ int main(int argc, char *argv[])
 
    // Data values
    int x, y, z;
-   double xg, yg, zg;
+   x = 0; y = 0; z = 0;
+   int delta_x, delta_y, delta_z;
+   double delta_xg, delta_yg, delta_zg;
 
-   // Running an average on the whole sim
-   long x_avg, y_avg, z_avg, count_avg;
-   x_avg = 0; y_avg = 0; z_avg = 0; count_avg = 0;
+   // Triggered or not
+   bool triggered = false;
 
    // For clocking and precision
    clock_t tic, toc;
@@ -191,7 +172,6 @@ int main(int argc, char *argv[])
    parse_args(argc, argv);
 
    if (debug_flag) printf("Starting up.\n");
-   if (debug_flag) printf("Sampling rate will be %d µs (%d ms).\n", sampling_rate_in_us, sampling_rate_in_us / 1000);
 
    // Configure the interface.
    if (debug_flag) printf("Enabling first MPC3002 ...");
@@ -232,28 +212,22 @@ int main(int argc, char *argv[])
 
    }
 
-   if (debug_flag) printf("SPI setup ... OK.\n\n");
+   if (debug_flag) printf("SPI setup ... Done.\n\n");
 
    do {
 
       tic = clock();
 
+      delta_x = x;
+      delta_y = y;
+      delta_z = z;
+
       x = 0; y = 0; z = 0;
       for (int i = 0; i < FINE_SAMPLING_COUNT; ++i)
       {
-         if (type==TYPE_ADXL) {
-            x += readADC(0) + X_OFFSET_ADXL;
-            y += readADC(1) + Y_OFFSET_ADXL;
-            z += readADC(2) + Z_OFFSET_ADXL;
-         } else if (type == TYPE_MMA) {
-            x += readADC(0) + X_OFFSET_MMA;
-            y += readADC(1) + Y_OFFSET_MMA;
-            z += readADC(2) + Z_OFFSET_MMA;
-         } else if (type == TYPE_LIS331) {
-            x += readADC(0) + X_OFFSET_LIS;
-            y += readADC(1) + Y_OFFSET_LIS;
-            z += readADC(2) + Z_OFFSET_LIS;
-         }
+         x += readADC(0);
+         y += readADC(1);
+         z += readADC(2);
       }
 
       // Average on 1ms approx.
@@ -261,31 +235,35 @@ int main(int argc, char *argv[])
       y = y/FINE_SAMPLING_COUNT;
       z = z/FINE_SAMPLING_COUNT;
 
+      // Calculate deltas
+      delta_x = x - delta_x;
+      delta_y = y - delta_y;
+      delta_z = z - delta_z;
+
       if (type==TYPE_ADXL) {
-         xg = (double) x*G_COEF_ADXL;
-         yg = (double) y*G_COEF_ADXL;
-         zg = (double) z*G_COEF_ADXL;
+         delta_xg = (double) delta_x*G_COEF_ADXL;
+         delta_yg = (double) delta_y*G_COEF_ADXL;
+         delta_zg = (double) delta_z*G_COEF_ADXL;
       } else if (type == TYPE_MMA) {
-         xg = (double) x*G_COEF_MMA;
-         yg = (double) y*G_COEF_MMA;
-         zg = (double) z*G_COEF_MMA;
+         delta_xg = (double) delta_x*G_COEF_MMA;
+         delta_yg = (double) delta_y*G_COEF_MMA;
+         delta_zg = (double) delta_z*G_COEF_MMA;
       } else if (type == TYPE_LIS331) {
-         xg = (double) x*G_COEF_LIS;
-         yg = (double) y*G_COEF_LIS;
-         zg = (double) z*G_COEF_LIS;
+         delta_xg = (double) delta_x*G_COEF_LIS;
+         delta_yg = (double) delta_y*G_COEF_LIS;
+         delta_zg = (double) delta_z*G_COEF_LIS;
       }
+
+      triggered = delta_xg*delta_xg + delta_yg*delta_yg + delta_zg*delta_zg > min_trigger_in_square_g;
 
       // 1G on at least one axis triggers the output
-      if ( max(xg, max(yg, zg)) > MIN_TRIGGER || debug_flag) {
-         // Format : X_10bit X_G Y_10bit Y_G Z_1Obit Z_G
-         printf("%d %f %d %f %d %f\n", x, xg, y, yg, z, zg);
-
-         if (debug_flag) {
-            x_avg += x; y_avg += y; z_avg += z; 
-            count_avg++;
-            printf("  [Average since launch %ld %ld %ld]\n", x_avg/count_avg, y_avg/count_avg, z_avg/count_avg);
-         }
+      if (triggered && !debug_flag && !first_loop) {
+         printf("%1.4f %1.4f %1.4f\n", delta_xg, delta_yg, delta_zg);
+      } else if (debug_flag) {
+         printf("[%s] 𝝙X %05d %1.4f 𝝙Y %05d %1.4f 𝝙Z %05d %1.4f \n", triggered ? "X" : "_", delta_x, delta_xg, delta_y, delta_yg, delta_z, delta_zg);
       }
+
+      first_loop = false;
 
       toc = clock();
       elapsed_time_in_us = (toc - tic) * ONE_OVER_CPS; // in microsecs
