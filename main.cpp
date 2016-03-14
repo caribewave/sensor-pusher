@@ -214,6 +214,8 @@ int main(int argc, char *argv[])
 
    if (debug_flag) fprintf(stdout, "SPI setup ... Done.\n\n");
 
+   fflush(stdout);
+   
    do {
 
       tic = clock();
@@ -264,6 +266,7 @@ int main(int argc, char *argv[])
       }
 
       first_loop = false;
+      fflush(stdout);
 
       toc = clock();
       elapsed_time_in_us = (toc - tic) * ONE_OVER_CPS; // in microsecs
