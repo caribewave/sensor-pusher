@@ -111,43 +111,43 @@ void parse_args(int argc, char *argv[])
    // Check arguments
    if (argc != 5) {
    
-      printf("Caribe Wave Sensor Pusher — pushes sensor data to stdout for next stage.\n");
-      printf("Usage :\n");
-      printf("  ./main [type] [sampling rate] [trigger] [debug]\n");
-      printf("\n");
-      printf("Arguments :\n");
-      printf("  - type: type of accelerometer : ADXL, LIS or MMA (string).\n");
-      printf("  - sampling rate: in milliseconds, between 0 and 1000.\n");
-      printf("  - trigger: trigger value in millig.\n");
-      printf("  - debug: 1 or 0.\n");
-      printf("\n");
+      fprintf(stdout, "Caribe Wave Sensor Pusher — pushes sensor data to stdout for next stage.\n");
+      fprintf(stdout, "Usage :\n");
+      fprintf(stdout, "  ./main [type] [sampling rate] [trigger] [debug]\n");
+      fprintf(stdout, "\n");
+      fprintf(stdout, "Arguments :\n");
+      fprintf(stdout, "  - type: type of accelerometer : ADXL, LIS or MMA (string).\n");
+      fprintf(stdout, "  - sampling rate: in milliseconds, between 0 and 1000.\n");
+      fprintf(stdout, "  - trigger: trigger value in millig.\n");
+      fprintf(stdout, "  - debug: 1 or 0.\n");
+      fprintf(stdout, "\n");
       exit(0);
    
    }
 
    debug_flag = argv[4][0] == '1' ? true : false;
-   if (debug_flag) printf("Debug flag is TRUE.\n");
+   if (debug_flag) fprintf(stdout, "Debug flag is TRUE.\n");
 
    if (strcmp(argv[1],"LIS")==0) {
       type = TYPE_LIS331;
-      if (debug_flag) printf("Accel. type is : LIS331 (SPI).\n");
+      if (debug_flag) fprintf(stdout, "Accel. type is : LIS331 (SPI).\n");
    } else if (strcmp(argv[1],"MMA")==0) {
       type = TYPE_MMA;
-      if (debug_flag) printf("Accel. type is : MMA (Analog).\n");
+      if (debug_flag) fprintf(stdout, "Accel. type is : MMA (Analog).\n");
    } else if (strcmp(argv[1],"ADXL")==0) {
       type = TYPE_ADXL;
-      if (debug_flag) printf("Accel. type is : ADXL337 (Analog).\n");
+      if (debug_flag) fprintf(stdout, "Accel. type is : ADXL337 (Analog).\n");
    } else {
-      printf("Accelerometer type not recognized.\n");
+      fprintf(stdout, "Accelerometer type not recognized.\n");
       exit(0);
    }
 
    sampling_rate_in_us = max(0, min(1000, atoi(argv[2]))) * 1000;
-   if (debug_flag) printf("Sampling rate will be %d µs (%d ms).\n", sampling_rate_in_us, sampling_rate_in_us / 1000);
+   if (debug_flag) fprintf(stdout, "Sampling rate will be %d µs (%d ms).\n", sampling_rate_in_us, sampling_rate_in_us / 1000);
 
    int min_trigger_in_millig = max(0, min(6000, atoi(argv[3])));
    min_trigger_in_square_g = (min_trigger_in_millig/1000.0)*(min_trigger_in_millig/1000.0);
-   if (debug_flag) printf("Minimum trigger is %d mg.\n", min_trigger_in_millig);
+   if (debug_flag) fprintf(stdout, "Minimum trigger is %d mg.\n", min_trigger_in_millig);
 
 }
 
@@ -171,24 +171,24 @@ int main(int argc, char *argv[])
 
    parse_args(argc, argv);
 
-   if (debug_flag) printf("Starting up.\n");
+   if (debug_flag) fprintf(stdout, "Starting up.\n");
 
    // Configure the interface.
-   if (debug_flag) printf("Enabling first MPC3002 ...");
+   if (debug_flag) fprintf(stdout, "Enabling first MPC3002 ...");
    fd_mpc3002_1 = wiringPiSPISetup(0, SPI_SPEED);
-   if (debug_flag) printf(" Done (%d).\n", fd_mpc3002_1);
+   if (debug_flag) fprintf(stdout, " Done (%d).\n", fd_mpc3002_1);
    usleep(10000);
    
    if (type==TYPE_ADXL || type == TYPE_MMA) {
 
-      if (debug_flag) printf("Enabling second MCP3002 ...");
+      if (debug_flag) fprintf(stdout, "Enabling second MCP3002 ...");
       fd_mpc3002_2 = wiringPiSPISetup(1, SPI_SPEED);
-      if (debug_flag) printf(" Done (%d).\n", fd_mpc3002_2);
+      if (debug_flag) fprintf(stdout, " Done (%d).\n", fd_mpc3002_2);
       usleep(10000);
 
    } else if (type == TYPE_LIS331) {
 
-      if (debug_flag) printf("Writing LIS331 registers ...");
+      if (debug_flag) fprintf(stdout, "Writing LIS331 registers ...");
 
       // Enable axis, normal mode (REG_1)
       buffer[0] = 0b00100000;
@@ -208,11 +208,11 @@ int main(int argc, char *argv[])
       wiringPiSPIDataRW(0, buffer, 2);
       usleep(10000);
 
-      if (debug_flag) printf(" Done.\n");
+      if (debug_flag) fprintf(stdout, " Done.\n");
 
    }
 
-   if (debug_flag) printf("SPI setup ... Done.\n\n");
+   if (debug_flag) fprintf(stdout, "SPI setup ... Done.\n\n");
 
    do {
 
@@ -258,21 +258,21 @@ int main(int argc, char *argv[])
 
       // 1G on at least one axis triggers the output
       if (triggered && !debug_flag && !first_loop) {
-         printf("%1.4f %1.4f %1.4f\n", delta_xg, delta_yg, delta_zg);
+         fprintf(stdout, "%1.4f %1.4f %1.4f\n", delta_xg, delta_yg, delta_zg);
       } else if (debug_flag) {
-         printf("[%s] 𝝙X %05d %1.4f 𝝙Y %05d %1.4f 𝝙Z %05d %1.4f \n", triggered ? "X" : "_", delta_x, delta_xg, delta_y, delta_yg, delta_z, delta_zg);
+         fprintf(stdout, "[%s] 𝝙X %05d %1.4f 𝝙Y %05d %1.4f 𝝙Z %05d %1.4f \n", triggered ? "X" : "_", delta_x, delta_xg, delta_y, delta_yg, delta_z, delta_zg);
       }
 
       first_loop = false;
 
       toc = clock();
       elapsed_time_in_us = (toc - tic) * ONE_OVER_CPS; // in microsecs
-      if (debug_flag) printf("  [Sampling took %d us]\n", elapsed_time_in_us);
+      if (debug_flag) fprintf(stdout, "  [Sampling took %d us]\n", elapsed_time_in_us);
 
       usleep(sampling_rate_in_us - max(0, static_cast<int>(min(elapsed_time_in_us, sampling_rate_in_us))));
 
    } while(true);
 
-   if (debug_flag) printf("Exiting");
+   if (debug_flag) fprintf(stdout, "Exiting");
 
 }
