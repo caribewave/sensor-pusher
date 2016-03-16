@@ -30,7 +30,7 @@ The code has been tested and optimized for the following SPI sensors :
 
 #### Operation
 
-    ./main [accelerometer_type] [sampling_delay_in_ms] [trigger] [debug flag]
+    ./main [accelerometer_type] [sampling_delay_in_ms] [trigger] [time span] [debug flag]
 
 
 ###### Arguments
@@ -40,6 +40,7 @@ All arguments are mandatory.
   * Accelerometer type : Either "LIS", "MMA" or "ADXL". No default. Uppercase only.
   * Sampling rate : in milliseconds, between **0** and **1000**.
   * Trigger: minimum trigger value in milli _g_.
+  * Trigger time span: the time span during which we continue to output data after a trigger, in millis. Must be a multiple of the sampling rate.
   * Debug flag : Either 1 or 0.
 
 Example :

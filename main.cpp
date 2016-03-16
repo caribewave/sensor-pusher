@@ -35,6 +35,9 @@ unsigned int sampling_rate_in_us = 1000000; // 1 second
 
 #define FINE_SAMPLING_COUNT 10
 
+unsigned int samples_count = 1; // Number of samples to output after a trigger, default 1
+bool keep_outputting = false;
+
 // Global type of accelerometer
 unsigned int type;
 
@@ -109,23 +112,24 @@ void parse_args(int argc, char *argv[])
 {
 
    // Check arguments
-   if (argc != 5) {
+   if (argc != 6) {
    
       fprintf(stdout, "Caribe Wave Sensor Pusher — pushes sensor data to stdout for next stage.\n");
       fprintf(stdout, "Usage :\n");
-      fprintf(stdout, "  ./main [type] [sampling rate] [trigger] [debug]\n");
+      fprintf(stdout, "  ./main [type] [sampling rate] [trigger] [time span] [debug]\n");
       fprintf(stdout, "\n");
       fprintf(stdout, "Arguments :\n");
       fprintf(stdout, "  - type: type of accelerometer : ADXL, LIS or MMA (string).\n");
       fprintf(stdout, "  - sampling rate: in milliseconds, between 0 and 1000.\n");
-      fprintf(stdout, "  - trigger: trigger value in millig.\n");
+      fprintf(stdout, "  - trigger: trigger value in millig (max 1sec).\n");
+      fprintf(stdout, "  - trigger time span: span time during which we keep outputting data after a trigger (max 2min).\n");
       fprintf(stdout, "  - debug: 1 or 0.\n");
       fprintf(stdout, "\n");
       exit(0);
    
    }
 
-   debug_flag = argv[4][0] == '1' ? true : false;
+   debug_flag = argv[5][0] == '1' ? true : false;
    if (debug_flag) fprintf(stdout, "Debug flag is TRUE.\n");
 
    if (strcmp(argv[1],"LIS")==0) {
@@ -149,6 +153,9 @@ void parse_args(int argc, char *argv[])
    min_trigger_in_square_g = (min_trigger_in_millig/1000.0)*(min_trigger_in_millig/1000.0);
    if (debug_flag) fprintf(stdout, "Minimum trigger is %d mg.\n", min_trigger_in_millig);
 
+   int time_span_in_ms = max(0, min(120000, atoi(argv[4])));
+   samples_count = 1000 * time_span_in_ms / sampling_rate_in_us;
+   if (debug_flag) fprintf(stdout, "Time span is %d ms (%d samples per trigger).\n", time_span_in_ms, samples_count);
 }
 
 int main(int argc, char *argv[])
@@ -164,6 +171,7 @@ int main(int argc, char *argv[])
 
    // Triggered or not
    bool triggered = false;
+   unsigned int sample_number = 0;
 
    // For clocking and precision
    clock_t tic, toc;
@@ -215,7 +223,7 @@ int main(int argc, char *argv[])
    if (debug_flag) fprintf(stdout, "SPI setup ... Done.\n\n");
 
    fflush(stdout);
-   
+
    do {
 
       tic = clock();
@@ -258,19 +266,41 @@ int main(int argc, char *argv[])
 
       triggered = delta_xg*delta_xg + delta_yg*delta_yg + delta_zg*delta_zg > min_trigger_in_square_g;
 
-      // 1G on at least one axis triggers the output
-      if (triggered && !debug_flag && !first_loop) {
+      if (debug_flag) {
+         fprintf(stdout, "[%s] [%s] 𝝙X %05d %1.4f 𝝙Y %05d %1.4f 𝝙Z %05d %1.4f \n", triggered ? "X" : "_", keep_outputting? "X" : "_", delta_x, delta_xg, delta_y, delta_yg, delta_z, delta_zg);
+      }
+
+      // 1G on at least one axis triggers the output,
+      // or if we are outputting a burst (keep_outputting = true)
+      if ((triggered && !first_loop) || keep_outputting) {
+      
+         if (triggered) {
+            sample_number = 1; // Reset for each trigger, to have a rolling behavior
+         } else {
+            sample_number++;
+         }
+
          fprintf(stdout, "%1.4f %1.4f %1.4f\n", delta_xg, delta_yg, delta_zg);
-      } else if (debug_flag) {
-         fprintf(stdout, "[%s] 𝝙X %05d %1.4f 𝝙Y %05d %1.4f 𝝙Z %05d %1.4f \n", triggered ? "X" : "_", delta_x, delta_xg, delta_y, delta_yg, delta_z, delta_zg);
+
+      } else {
+         // Sample = 0 => we have not triggered yet
+         sample_number = 0;
       }
 
       first_loop = false;
       fflush(stdout);
 
       toc = clock();
+
+      // Keep a first clock to know if we need to keep outputting
+      // the data or not
+      keep_outputting = (sample_number != 0) && (sample_number < samples_count);
+
+      // Keep a clock to know how much deviation we need to apply to 
+      // the standard sampling_rate
       elapsed_time_in_us = (toc - tic) * ONE_OVER_CPS; // in microsecs
-      if (debug_flag) fprintf(stdout, "  [Sampling took %d us]\n", elapsed_time_in_us);
+
+      if (debug_flag) fprintf(stdout, "        [Sampling took %d us]\n", elapsed_time_in_us);
 
       usleep(sampling_rate_in_us - max(0, static_cast<int>(min(elapsed_time_in_us, sampling_rate_in_us))));
 
